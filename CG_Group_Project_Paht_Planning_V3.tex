@@ -6,11 +6,14 @@
 \geometry{a4paper, margin=2.5cm}
 \usepackage{amsmath}
 \usepackage{amssymb}
+\usepackage{xcolor}
 \usepackage[colorlinks=true, linkcolor=blue!50!black, urlcolor=blue!50!black, citecolor=blue!50!black]{hyperref}
 \usepackage{enumitem}
 \usepackage{booktabs}
 \usepackage{titlesec}
 \usepackage{fancyhdr}
+\usepackage{graphicx}
+\usepackage{caption}
 
 % ---------- Heading style ----------
 \titleformat{\section}{\large\bfseries}{\thesection}{0.6em}{}
@@ -55,31 +58,50 @@ different path planning methods.
 
 \section{Big Picture Goal}
 
-We will build a \textbf{pursuit demo} in \textbf{Godot}: a pursued actor
-(either player controlled or with simple flee logic) moves through a scene
-containing static and dynamic obstacles. Two to three AI controlled
-pursuers navigate in parallel using different path planning algorithms
-toward the same target. During the simulation, benchmarks are recorded
-live and displayed as a comparison chart at the end.
-
+We will build a \textbf{life simulation demo} in \textbf{Godot}: four NPCs
+move through a top down house scene with several connected rooms, each
+NPC following its own list of two to three targets it visits one after
+another (looping once the list is finished). For every target, the NPC
+runs through a small finite state machine, walking toward the target
+(state \texttt{WALKING}), then interacting with it for a fixed duration
+(state \texttt{IDLE}) before moving on. A switchable path planning
+algorithm (default $A^*$) computes the route for every walk phase, so
+the same scenario can be replayed with different algorithms and compared
+directly. Benchmarks are recorded live during the simulation and
+displayed as a comparison chart at the end.
 
 \subsection{Game Concept in Detail}
 
 \begin{itemize}[leftmargin=1.2em]
-  \item \textbf{Scenario:} top down view, a grid or navigation structure
-  with obstacles (walls, rooms, narrow passages), similar to the example
-  scenes from the lecture (waypoints, grid, polygon meshes).
-  \item \textbf{Mode 1, Spectator Race:} multiple agents start at the same
-  point and pursue the same moving target. Whoever arrives first, or
-  follows the shortest, fastest route, wins visibly.
-  \item \textbf{Mode 2, Live Benchmark:} on button press, a course is
-  solved by several algorithms simultaneously, without a player character,
-  purely for data collection.
-  \item \textbf{Dynamic obstacles:} some obstacles move on
-  their own so that replanning becomes necessary. This makes the
+  \item \textbf{Scenario:} top down view of a house with multiple rooms
+  connected by doors and narrow passages, populated with static furniture
+  obstacles (see Figure~\ref{fig:house-layout}).
+  \item \textbf{NPCs and targets:} four NPCs, each assigned an array of
+  two to three target points inside the house. Each NPC cycles through
+  \texttt{WALKING} (path planning and movement to the next target) and
+  \texttt{IDLE} (a countdown timer at the target before moving on), and
+  loops back to the start of its target array once finished.
+  \item \textbf{Mode 1, Spectator Race:} all four NPCs are active
+  simultaneously, each one possibly using a different path planning
+  algorithm, so the resulting routes through the house can be compared
+  visually as the simulation runs.
+  \item \textbf{Mode 2, Live Benchmark:} on button press, a fixed set of
+  start/target pairs is solved by several algorithms one after another,
+  without NPC animation, purely for data collection.
+  \item \textbf{Dynamic obstacles (optional extension):} some obstacles
+  move on their own so that replanning becomes necessary. This makes the
   difference between algorithms visible and provides material for the
-  recent techniques.
+  recent technique.
 \end{itemize}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.85\textwidth]{Bildschirmfoto 2026-06-20 um 18.34.44.png}
+  \caption{Sketch of the house scene with four NPCs (colored stars) and
+  their target points (colored squares/circles), from the original
+  project idea.}
+  \label{fig:house-layout}
+\end{figure}
 
 \newpage 
 
@@ -113,6 +135,11 @@ The following points outline various techniques and lecture concepts that could 
   \begin{itemize}
     \item To visibly differentiate competing path planning strategies, agents could optionally emit real-time, color-coded trailing paths utilizing particle emitters. This simulation might map to the lecture's four-step particle life cycle mechanics: 1) \textit{Produce/Inject} at current spatial nodes, 2) assigning individual \textit{Attributes} (initial reverse velocity, color tags), 3) scripted \textit{Transport/Modification}, and 4) deletion once time-to-live (\textit{TTL}) limits \textit{Vanish}.
   \end{itemize}
+  
+  \item \textbf{Key Frame Animation (Visual Polish):}
+  Walking and idle states from the original idea could be backed by simple
+  key frame animation cycles (e.g. a walk cycle as in the original
+  sprite sheet), switched based on the NPC's current FSM state.
 \end{enumerate}
 
 \newpage
@@ -163,7 +190,8 @@ with a benchmark framework that records metrics during the simulation.
   \item implement dynamic programming / breadth first search as baseline
   \item implement greedy best first search
   \item implement A* search
-  \item implement the chosen recent technique (e.g. Jump Point Search)
+  \item implement the chosen recent technique (e.g. Jump Point Search;
+  Particle Repulsion is an alternative candidate from the original idea)
   \item benchmark framework: logging of metrics per algorithm and run
   \item visualization of paths in the scene (e.g. color coded per
   algorithm)
