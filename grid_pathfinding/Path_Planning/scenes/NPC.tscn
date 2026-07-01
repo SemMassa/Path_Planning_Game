@@ -1,0 +1,13 @@
+[gd_scene format=3 uid="uid://b2ubhepd5ojo1"]
+
+[ext_resource type="Script" uid="uid://ctukh7jkvcycd" path="res://scripts/NPC.gd" id="1"]
+
+[sub_resource type="RectangleShape2D" id="1"]
+size = Vector2(24, 24)
+
+[node name="NPC" type="CharacterBody2D" unique_id=1152570594]
+script = ExtResource("1")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=479335607]
+shape = SubResource("1")
+debug_color = Color(0.73647493, 0.22576523, 0.9999998, 0.41960785)
