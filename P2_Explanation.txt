@@ -1,0 +1,134 @@
+
+Explanation on how each of the scenes and scripts work for part 2:
+
+SCENES
+-------------------------------
+npc_test.tscn: Overall scene (REPLACE WITH WORK FROM PART 1)
+npc.tscn: NPC  
+test_world: Ground layout (REPLACE WITH WORK FROM PART 1)
+test_collision: Simple boxes made to test collision (REPLACE WITH WORK FROM PART 1)
+
+
+SCRIPTS
+-----------------------------
+
+main.gd: Scene manager 
+
+	- Constructs npcs and obstacles and places them on map 
+		- NPCS: 
+			- Assigns color for sprite
+			- Assigns mode targets NPC needs to hit (life/race)
+			- Assigns algorithm path planner needs 
+					
+				
+	- Creates targets in the scene that the NPCs need to hit (passed to npc.gd)
+		- Handles switching between life and race modes 
+			- when switched, will signal to each NPC to switch behavior
+
+	- Creates/manages spatial grid layout for scene (Compare with work for part 1)
+	- Creates/manages cells marked as solid (containing obstacles)
+	- Handles collision between objects in scene (pushback)
+		- collision detection (AABB vs. AABB)
+			
+
+npc.gd: NPC handler class 
+
+	- Assigns texture and animation JSON script to NPC (from res://sprite_sheets/)
+	- Parses animations from JSON
+	- Controls frame processing 
+
+	- Constructs PathPlanner2D object for NPC
+		- Assigns sprite dimensions to use for collision detection (AABB generation)
+		- Assigns path finding algorithm (ASTAR, DSTARLITE, JPSPLUS)
+		- Assigns first target NPC needs to hit 
+
+	- Constructs FiniteStateMachine for the NPC (controlled by fsm.gd)
+	
+
+	- Handles target progression
+	- Handles target changes upon mode switching (LIFE vs. RACE)
+
+	- Determines current movement direction (used to handle animation direction)
+
+
+path_planner.gd: Path Planner handler 
+	- Sets path planning algorithm that is used to create path 
+	- Sets current target passed from npc.gd
+	- Sets current size dimensions of NPC
+
+	- Handles path planning logic:
+		- Runs associated path finding algorithm to get waypoints 
+		- For each waypoint: 
+			- move to waypoint 
+			- check if next waypoint has an obstacle that it will collide with 
+			- if collision, switch to block state
+			
+			
+
+	- Marks cells as solid/blocked for world scene if collision found
+	- Checks if target destination has been reached 
+	- Handles path recalculation 
+
+path_algorithm.gd: Generic path algorithm class 
+	- stores shared variables/functions for all path algorithm classes
+
+
+a_star.gd: A* algorithm class
+	ADD IMPLEMENTATION FROM PART 1 HERE
+
+
+d_star_lite.gd: D* Lite algorithm class
+	NOT IMPLEMENTED YET
+
+jps_plus.gd: Jump Point Search Plus algorithm class
+	ADD IMPLEMENTION FROM PART 3 HERE
+
+
+		
+fsm.gd: Finite State Machine handler 
+	
+	- Handles entering, changing and exiting states
+		- calls related functions in related state script
+
+
+npc_state.gd: Base NPC State class 
+	- Contains shared members/methods for FSM states
+
+
+walk_state.gd: Movement state
+	- Plays walking animation based on current direction 
+	- Retrieves movement frame from path planner object
+		- If blocked, switches to block state
+		 
+	- Updates NPC velocity and global position until destination reached
+	- Once destination reached, switches to idle state (LIFE) or done state (RACE)
+
+
+idle_state.gd: Idle state for LIFE
+	- plays idle cleaning animation until timer runs down to zero, then goes back to Walk
+
+
+done_state.gd: Idle state for RACE
+	- Only shows one frame of waiting animation 
+
+
+block_state.gd: Block state 
+	- Called when NPC is currently blocked
+	- Recalculates path
+		- if successful, switches back to Walk
+		- if unsuccessful, switches to Wait 
+
+
+wait_state.gd: Wait state
+	- Plays waiting animation until timer runs down to zero, then goes back to Block
+
+
+OTHER
+----------------------------------
+
+res://sprite_sheets/
+	- Folder containing json files and texture files for animation 
+
+
+	
+			

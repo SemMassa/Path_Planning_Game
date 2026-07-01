@@ -1,0 +1,24 @@
+{ "frames": {
+   "collision_box.ase": {
+	"frame": { "x": 0, "y": 0, "w": 16, "h": 16 },
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
+	"sourceSize": { "w": 16, "h": 16 },
+	"duration": 100
+   }
+ },
+ "meta": {
+  "app": "https://github.com/LibreSprite/LibreSprite/",
+  "version": "1.1-dev",
+  "image": "C:\\Users\\frann\\heidelberg-CSCI\\computer-games\\Mini_Proj\\collision_box.png",
+  "format": "RGBA8888",
+  "size": { "w": 16, "h": 16 },
+  "scale": "1",
+  "frameTags": [
+  ],
+  "layers": [
+   { "name": "Layer 1", "opacity": 255, "blendMode": "normal" }
+  ]
+ }
+}

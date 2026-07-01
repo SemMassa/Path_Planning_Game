@@ -1,0 +1,16 @@
+[gd_scene format=3 uid="uid://53f0q6eii7ad"]
+
+[ext_resource type="Texture2D" uid="uid://dtfn7amcrx6d1" path="res://sprite_sheets/collision_box.png" id="1_se0eu"]
+
+[node name="CollisionTest" type="Node2D" unique_id=263844636]
+
+[node name="StaticBody2D" type="StaticBody2D" parent="." unique_id=1451248626]
+
+[node name="Sprite2D" type="Sprite2D" parent="StaticBody2D" unique_id=1527829313]
+texture = ExtResource("1_se0eu")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D" unique_id=470446052]
+
+[node name="NavigationObstacle2D" type="NavigationObstacle2D" parent="StaticBody2D" unique_id=293023810]
+radius = 16.0
+vertices = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)

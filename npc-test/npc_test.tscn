@@ -1,0 +1,39 @@
+[gd_scene format=3 uid="uid://bwdcxyrnnkt2r"]
+
+[ext_resource type="Script" uid="uid://tr8o6upb0slm" path="res://main.gd" id="1_30log"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_j7gwr"]
+size = Vector2(600, 600)
+
+[sub_resource type="QuadMesh" id="QuadMesh_j7gwr"]
+
+[sub_resource type="NavigationPolygon" id="NavigationPolygon_c8h45"]
+vertices = PackedVector2Array(-286.64063, 249.72656, -286.82813, 249.75781, -280.1328, -259.92188, 272.39844, 236.5625, 272.79688, 257.92188, -286.7422, 254.07031, 266.34375, -256.0625, 283.64844, 236.25781)
+polygons = Array[PackedInt32Array]([PackedInt32Array(0, 1, 2), PackedInt32Array(3, 4, 5, 0), PackedInt32Array(3, 0, 2, 6, 7)])
+outlines = Array[PackedVector2Array]([PackedVector2Array(-297, 264, -285, -265, 273, -265, 283, 268), PackedVector2Array(276, -266, 294, 246, -297, 262, -290, -270)])
+
+[node name="Node2D" type="Node2D" unique_id=57700616]
+script = ExtResource("1_30log")
+
+[node name="Ground" type="StaticBody2D" parent="." unique_id=254665861]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Ground" unique_id=1652368594]
+position = Vector2(-4, 11)
+shape = SubResource("RectangleShape2D_j7gwr")
+
+[node name="MeshInstance2D" type="MeshInstance2D" parent="Ground" unique_id=1042476874]
+scale = Vector2(600, 544.587)
+mesh = SubResource("QuadMesh_j7gwr")
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=1762006753]
+
+[node name="PatrolMode" type="CheckButton" parent="." unique_id=64835352]
+offset_left = -250.0
+offset_top = 196.0
+offset_right = -117.0
+offset_bottom = 227.0
+text = "Race Mode"
+
+[node name="NavigationRegion2D" type="NavigationRegion2D" parent="." unique_id=1743704215]
+position = Vector2(0, -2)
+navigation_polygon = SubResource("NavigationPolygon_c8h45")

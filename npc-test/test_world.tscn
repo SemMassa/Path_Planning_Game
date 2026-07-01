@@ -1,0 +1,22 @@
+[gd_scene format=3 uid="uid://ci5w3io7ai2tg"]
+
+[ext_resource type="Script" uid="uid://tr8o6upb0slm" path="res://main.gd" id="1_dxppu"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_j7gwr"]
+size = Vector2(500, 449)
+
+[sub_resource type="QuadMesh" id="QuadMesh_j7gwr"]
+
+[node name="Node2D" type="Node2D" unique_id=57700616]
+script = ExtResource("1_dxppu")
+
+[node name="Ground" type="StaticBody2D" parent="." unique_id=254665861]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Ground" unique_id=1652368594]
+position = Vector2(581, 297.5)
+shape = SubResource("RectangleShape2D_j7gwr")
+
+[node name="MeshInstance2D" type="MeshInstance2D" parent="Ground" unique_id=1042476874]
+position = Vector2(583, 298.00003)
+scale = Vector2(500, 453.823)
+mesh = SubResource("QuadMesh_j7gwr")

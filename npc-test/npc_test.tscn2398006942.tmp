@@ -1,0 +1,36 @@
+[gd_scene format=3 uid="uid://bwdcxyrnnkt2r"]
+
+[ext_resource type="PackedScene" uid="uid://cttb40toe11ji" path="res://npc.tscn" id="1_pll2s"]
+[ext_resource type="Texture2D" uid="uid://bgry0ioildrux" path="res://sprite_sheets/green_sprites.png" id="2_30log"]
+[ext_resource type="Texture2D" uid="uid://bv15s3wlm0ihv" path="res://sprite_sheets/blue_sprites.png" id="2_ylyrk"]
+[ext_resource type="Texture2D" uid="uid://c13yriwssot5v" path="res://sprite_sheets/red_sprites.png" id="3_30log"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_j7gwr"]
+size = Vector2(500, 449)
+
+[sub_resource type="QuadMesh" id="QuadMesh_j7gwr"]
+
+[sub_resource type="NavigationPolygon" id="NavigationPolygon_ylyrk"]
+vertices = PackedVector2Array(810.9219, 504.03906, 354.0703, 505.95313, 356.92188, 105.86719, 808.0703, 100.11719)
+polygons = Array[PackedInt32Array]([PackedInt32Array(0, 1, 2, 3)])
+outlines = Array[PackedVector2Array]([PackedVector2Array(347, 96, 818, 90, 821, 514, 344, 516)])
+
+[node name="Node2D" type="Node2D" unique_id=57700616]
+
+[node name="Ground" type="StaticBody2D" parent="." unique_id=254665861]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Ground" unique_id=1652368594]
+position = Vector2(581, 297.5)
+shape = SubResource("RectangleShape2D_j7gwr")
+
+[node name="MeshInstance2D" type="MeshInstance2D" parent="Ground" unique_id=1042476874]
+position = Vector2(583, 298.00003)
+scale = Vector2(500, 453.823)
+mesh = SubResource("QuadMesh_j7gwr")
+
+[node name="NavigationRegion2D" type="NavigationRegion2D" parent="Ground" unique_id=1047944649]
+navigation_polygon = SubResource("NavigationPolygon_ylyrk")
+
+[node name="Green" parent="." unique_id=2039159919 instance=ExtResource("1_pll2s")]
+position = Vector2(581, 293)
+textures = Array[Texture2D]([ExtResource("2_30log"), ExtResource("2_ylyrk"), ExtResource("3_30log")])

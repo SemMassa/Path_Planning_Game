@@ -1,0 +1,40 @@
+[gd_scene format=3 uid="uid://cttb40toe11ji"]
+
+[ext_resource type="Script" uid="uid://c105wqk4xp4di" path="res://npc.gd" id="1_ideak"]
+[ext_resource type="Script" uid="uid://cbymsah3w2ll" path="res://fsm.gd" id="3_bc6q4"]
+[ext_resource type="Script" uid="uid://bdehmqcxkb3ls" path="res://done_state.gd" id="5_bc6q4"]
+[ext_resource type="Script" uid="uid://cqfbjokiru322" path="res://walk_state.gd" id="5_mcvl2"]
+[ext_resource type="Script" uid="uid://b44cianqi2ehw" path="res://wait_state.gd" id="6_mcvl2"]
+[ext_resource type="Script" uid="uid://ct81qfyvre82s" path="res://idle_state.gd" id="7_d61ma"]
+[ext_resource type="Script" uid="uid://chtsevryvgjg2" path="res://block_state.gd" id="8_slxoh"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_mcvl2"]
+
+[node name="CharacterBody2D" type="CharacterBody2D" unique_id=2039159919]
+position = Vector2(0, 1)
+script = ExtResource("1_ideak")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1485547096]
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1270266533]
+
+[node name="FiniteStateMachine" type="Node" parent="." unique_id=1662603194]
+script = ExtResource("3_bc6q4")
+
+[node name="WalkState" type="Node" parent="FiniteStateMachine" unique_id=2057944982]
+script = ExtResource("5_mcvl2")
+
+[node name="DoneState" type="Node" parent="FiniteStateMachine" unique_id=1980995397]
+script = ExtResource("5_bc6q4")
+
+[node name="WaitState" type="Node" parent="FiniteStateMachine" unique_id=824428183]
+script = ExtResource("6_mcvl2")
+
+[node name="IdleState" type="Node" parent="FiniteStateMachine" unique_id=461637915]
+script = ExtResource("7_d61ma")
+
+[node name="BlockState" type="Node" parent="FiniteStateMachine" unique_id=2141630186]
+script = ExtResource("8_slxoh")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1863767468]
+shape = SubResource("CircleShape2D_mcvl2")
