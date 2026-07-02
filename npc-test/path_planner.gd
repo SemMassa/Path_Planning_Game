@@ -30,6 +30,8 @@ func set_algorithm_by_type(algorithm: AlgorithmType) -> void:
 	
 func set_algorithm(algorithm: PathAlgorithm) -> void: 
 	current_algorithm = algorithm
+	if current_algorithm:
+		current_algorithm.configure(world_manager)
 	
 func set_target(target: Vector2) -> void: 
 	
@@ -60,7 +62,7 @@ func set_current_extents(extents: Vector2) -> void:
 		## JPS+: 
 
 		
-func get_next_movement_frame(delta: float) -> Dictionary: 
+func get_next_movement_frame(_delta: float) -> Dictionary: 
 	var result = {"velocity": Vector2.ZERO, "status": "OK"}
 	
 	if current_waypoint_idx >= current_path.size(): 
@@ -87,10 +89,10 @@ func get_next_movement_frame(delta: float) -> Dictionary:
 		# If collided, need to move to block state
 		result["status"] = "BLOCKED"
 		return result
-		
-		# If no collision, move waypoint 
-		var waypoint_dir = global_position.direction_to(target_waypoint)
-		result["velocity"] = waypoint_dir * speed
+
+	# If no collision, move waypoint 
+	var waypoint_dir = global_position.direction_to(target_waypoint)
+	result["velocity"] = waypoint_dir * speed
 	
 	return result 
 	
@@ -109,8 +111,8 @@ func check_sensor_radar() -> Dictionary:
 	var waypoint_dir = global_position.direction_to(waypoint)
 	
 	# Perform a lookahead and determine what's one tile in front
-	var lookahead_dist = 32.0 # one tile
-	var lookahead_pos  = global_position + (waypoint_dir * lookahead_dist)
+	var local_lookahead_dist = 32.0 # one tile
+	var lookahead_pos  = global_position + (waypoint_dir * local_lookahead_dist)
 	
 	# Check for collisions 
 	# Locate the cell for lookahead_pos
