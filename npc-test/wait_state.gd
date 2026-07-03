@@ -3,8 +3,12 @@ extends NPCState
 const WAIT_TIME: float = 2.0
 var timer: float = 0.0
 
-func enter(msg: Dictionary = {}) -> void: 
+func enter(msg: Dictionary = {}, frame_data = {}) -> void: 
 	print("Entering WaitState")
+	
+	# Need to add this because if we were already in wait, we should recalculate 
+	frame_data["from_wait"] = true
+	
 	actor.velocity = Vector2.ZERO
 	timer = WAIT_TIME
 	

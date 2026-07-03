@@ -31,6 +31,10 @@ func set_algorithm_by_type(algorithm: AlgorithmType) -> void:
 func set_algorithm(algorithm: PathAlgorithm) -> void: 
 	current_algorithm = algorithm
 	
+	if current_algorithm:
+		current_algorithm.set_world_manager(world_manager)
+	
+	
 func set_target(target: Vector2) -> void: 
 	
 	# Set the new target and clear current path
@@ -40,31 +44,15 @@ func set_target(target: Vector2) -> void:
 
 func set_current_extents(extents: Vector2) -> void: 
 	current_extents = extents
-
-
-		
-		## Algorithm strategies
-		## -------------------------
-		## Standard A*: cannot handle local changes dynamically
-		## Actions: 
-		##	- Wipe current path 
-		##	- call recalculate path to search map from scratch, but avoiding the marked cell
-		##	- return velocity of zero to hold position during calculation 
-		#
-		## D*: Fixes paths dynamically without full recalculation 	
-		## Actions: 
-		##	- Repair segment of the path 
-		##   - Add new segment to waypoints
-		##   - Reset waypoint to 0 to target the new waypoint
-		#
-		## JPS+: 
-
 		
 func get_next_movement_frame(delta: float) -> Dictionary: 
-	var result = {"velocity": Vector2.ZERO, "status": "OK"}
+	var frame_data = {
+		"velocity": Vector2.ZERO, 
+		"status": "OK", 
+		"block_data": {}}
 	
 	if current_waypoint_idx >= current_path.size(): 
-		return result
+		return frame_data
 		
 	var target_waypoint = current_path[current_waypoint_idx]
 		
@@ -74,36 +62,33 @@ func get_next_movement_frame(delta: float) -> Dictionary:
 		
 		# If we've reached the end, stop
 		if current_waypoint_idx >= current_path.size(): 
-			return result
+			return frame_data
 			
 		target_waypoint = current_path[current_waypoint_idx]
 		
-	# Check if collision
-	var sensor = check_sensor_radar()
-	if sensor["collided"]:
-		world_manager.mark_cell_solid(sensor["position"])
-		
-			
-		# If collided, need to move to block state
-		result["status"] = "BLOCKED"
-		return result
-		
-		# If no collision, move waypoint 
-		var waypoint_dir = global_position.direction_to(target_waypoint)
-		result["velocity"] = waypoint_dir * speed
+	# Read sensor data and pass to result
+	var sensor_data = check_sensor_radar()
 	
-	return result 
-	
+	# If collided, mark cell as solid and move to block
+	if sensor_data["collided"]:
+		world_manager.mark_cell_solid(sensor_data["position"])
+		frame_data["status"] = "BLOCKED"
+		return frame_data
+				
+	# If no collision, move waypoint 
+	var waypoint_dir = global_position.direction_to(target_waypoint)
+	frame_data["velocity"] = waypoint_dir * speed
+	return frame_data 
 	
 func check_sensor_radar() -> Dictionary:
-	var results = {
+	var sensor_data = {
 		"collided": false, 
-		"obstacle_node" : null, 
+		"obstacle_node": null, 
 		"position": Vector2.ZERO}
 	
 	# If at the end of paths
 	if current_waypoint_idx >= current_path.size():
-		return results
+		return sensor_data
 		
 	var waypoint = current_path[current_waypoint_idx]
 	var waypoint_dir = global_position.direction_to(waypoint)
@@ -128,12 +113,11 @@ func check_sensor_radar() -> Dictionary:
 			# If collision, mark it as such in sensor 
 			if aabb_vs_aabb(npc_aabb, obstacle):
 				# set values in sensor 
-				results["collided"] = true
-				results["obstacle_node"] = obstacle
-				results["position"] = lookahead_pos
-				return results
-				
-	return results
+				sensor_data["collided"] = true
+				sensor_data["obstacle_node"] = obstacle
+				sensor_data["position"] = lookahead_pos
+	
+	return sensor_data
 		
 
 # AABB vs AABB collision detection 
@@ -155,6 +139,7 @@ func aabb_vs_aabb(npc_aabb: Rect2, obstacle: Node) -> bool:
 		
 		return ((min_npc.x < max_obs.x and max_npc.x > min_obs.x) and 
 			(min_npc.y < max_obs.y and max_npc.y > min_obs.y))
+	
 	
 # invoke full path recalculation 
 func recalculate_global_path() -> void: 

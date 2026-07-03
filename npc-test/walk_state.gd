@@ -12,21 +12,22 @@ func update(delta) -> void:
 	# Update the aabb for npc 
 	update_aabb()
 	
-	var movement_frame = planner.get_next_movement_frame(delta)
+	var frame_data = planner.get_next_movement_frame(delta)
 	
 	# Collision happened, stop moving and enter blocked state	
-	if movement_frame["status"] == "BLOCKED":
+	if frame_data["status"] == "BLOCKED":
 		actor.velocity = Vector2.ZERO
+
 		fsm.change_state("BlockState", {"facing": current_dir})
 		return 
 	
 	# Update velocity and position 
-	actor.velocity = movement_frame["velocity"]
+	actor.velocity = frame_data["velocity"]
 	actor.global_position += actor.velocity * delta
 	
 	# Update directional walking animation 
 	_update_walk_animation(actor.velocity)
-	
+
 	if planner.destination_reached():
 		# Stop velocity (no drift)
 		actor.velocity = Vector2.ZERO
