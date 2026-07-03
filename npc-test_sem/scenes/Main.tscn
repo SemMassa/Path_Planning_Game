@@ -1,0 +1,17 @@
+[gd_scene format=3 uid="uid://v2eht3tusb1"]
+
+[ext_resource type="Script" uid="uid://bjrccnkr5mou7" path="res://scripts/main.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/Grid.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/NPC.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/Obstacle.tscn" id="4"]
+
+[node name="Main" type="Node2D" unique_id=395948704]
+script = ExtResource("1")
+
+[node name="Grid" parent="." unique_id=1989031044 instance=ExtResource("2")]
+columns = 32
+rows = 33
+
+[node name="NPC" parent="Grid" unique_id=19475548 instance=ExtResource("3")]
+
+[node name="Obstacle" parent="Grid" unique_id=1869745506 instance=ExtResource("4")]
