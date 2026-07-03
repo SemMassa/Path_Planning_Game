@@ -22,8 +22,9 @@ func initialize(owning_npc: NPC) -> void:
 	if current_state:
 		current_state.enter()
 
-## Runs in _physics_process rather than _process: WalkState's movement
-## calls move_and_slide(), which must happen on the physics tick.
+## Runs in _physics_process rather than _process: WalkState's movement and
+## its own hand written collision check are both meant to run at a fixed
+## physics tick rate, not tied to however fast frames happen to render.
 func _physics_process(delta: float) -> void:
 	if current_state:
 		current_state.update(delta)

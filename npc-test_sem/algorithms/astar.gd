@@ -14,6 +14,12 @@ const NEIGHBOR_OFFSETS: Array[Vector2i] = [
 	Vector2i(1, 1), Vector2i(1, -1), Vector2i(-1, 1), Vector2i(-1, -1)
 ]
 
+## A plain A* search computes one path and is meant to stick to it, not
+## replan around new obstacles: a blocked NPC should retreat and wait it
+## out instead of pretending the graph changed.
+func block_reaction() -> Pathfinder.BlockReaction:
+	return Pathfinder.BlockReaction.RETREAT
+
 ## A* explores fewer cells than BFS because the heuristic steers it
 ## toward the goal instead of expanding outward in every direction.
 func find_path(grid: Grid, start: Vector2i, goal: Vector2i) -> Array[Vector2i]:

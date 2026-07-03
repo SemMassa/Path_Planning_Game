@@ -1,26 +1,32 @@
 class_name Obstacle
-extends AnimatableBody2D
+extends Node2D
 ## Patrols back and forth along a fixed list of cells (ping pong). Blocks the
 ## cell it is currently in and frees the one it just left, exactly when its
 ## visible position crosses into a new cell, so the map always matches what
 ## is actually on screen. Must be parented under a Grid node, same as NPC.
 ##
-## Drawn as its own orange square (see _draw() below) rather than only
-## showing up as a blocked grid cell: an occupied cell used to be painted
-## the same black as a real wall, which made the Obstacle look like it was
-## merging into and walking through walls whenever it passed one.
+## Drawn as its own filled, outlined square (see _draw() below, same look
+## as merged_game's MovingObstacle) rather than only showing up as a
+## blocked grid cell: an occupied cell used to be painted the same black
+## as a real wall, which made the Obstacle look like it was merging into
+## and walking through walls whenever it passed one.
 ##
-## AnimatableBody2D instead of plain Node2D: it is Godot's node meant for a
-## solid that a script moves directly (not through physics forces). Plain
-## Node2D has no CollisionShape2D at all, so there would be nothing for
-## NPC's hand written collision check (see collision_system.gd) to read.
-##
-## Godot's physics engine itself is not used to detect collisions against
-## this obstacle. collision_box() below only hands the raw shape data to
-## NPC, which runs its own narrow phase test with it.
+## Plain Node2D, same as merged_game's MovingObstacle, not a physics body:
+## nothing here ever goes through Godot's physics server at all, box_size
+## below is just plain exported data for NPC's hand written collision check
+## (see collision_system.gd) to read, no CollisionShape2D needed for it.
+## This also sidesteps a physics body's own position/transform syncing,
+## which could delay a freshly spawned Obstacle's first visible position by
+## a frame, showing it briefly at its default (0, 0) before jumping to its
+## real spawn cell.
 
-@export var speed: float = 100.0 # pixels per second
-@export var waypoint_reach_distance: float = 2.0 # px, when to snap onto a waypoint
+const FILL_COLOR: Color = Color(0.754, 0.137, 0.842) # matches merged_game's MovingObstacle
+const OUTLINE_COLOR: Color = Color(0.45, 0.10, 0.08)
+const OUTLINE_WIDTH: float = 1.5 # px
+
+@export var speed: float = 125.0 # pixels per second
+@export var waypoint_reach_distance: float = 2.5 # px, when to snap onto a waypoint
+@export var box_size: Vector2 = Vector2(25.0, 25.0) # collision proxy size, an AABB centered on us
 
 var grid: Grid
 var waypoints: Array[Vector2i] = []
@@ -29,8 +35,6 @@ var _waypoint_index: int = 0 # waypoint we are currently heading toward
 var _committed_index: int = 0 # waypoint we most recently fully reached
 var _direction: int = 1 # 1 = forward, -1 = backward through waypoints
 var _last_cell: Vector2i = Vector2i(-1, -1)
-
-@onready var _collision_shape: CollisionShape2D = $CollisionShape2D
 
 ## Places the Obstacle at spawn_cell, always, then starts patrolling path
 ## if it actually has one. spawn_cell must already be walkable (the caller
@@ -110,16 +114,17 @@ func _update_blocked_cell() -> void:
 	_last_cell = current_cell
 	grid.set_cell_occupied(current_cell, true)
 
-## Current world space bounding box, read straight from the RectangleShape2D
-## assigned in Obstacle.tscn. This never rotates, so shape.size centered on
-## global_position is exactly its AABB, no further math needed.
+## Current world space bounding box, centered on our own position. This
+## never rotates, so box_size centered on global_position is exactly its
+## AABB, no further math needed.
 func collision_box() -> Rect2:
-	var shape: RectangleShape2D = _collision_shape.shape
-	return Rect2(global_position - shape.size / 2.0, shape.size)
+	return Rect2(global_position - box_size / 2.0, box_size)
 
-## Draws the obstacle itself as a solid orange square matching its
-## CollisionShape2D, so it stays visible as a distinct shape moving at its
-## real, continuous position, not just as a discolored grid cell.
+## Draws the obstacle itself as a filled, outlined square matching
+## box_size, same look as merged_game's MovingObstacle, so it stays
+## visible as a distinct shape moving at its real, continuous position,
+## not just as a discolored grid cell.
 func _draw() -> void:
-	var half_size: Vector2 = (_collision_shape.shape as RectangleShape2D).size / 2.0
-	draw_rect(Rect2(-half_size, half_size * 2.0), Color(1.0, 0.55, 0.1))
+	var box: Rect2 = Rect2(-box_size / 2.0, box_size)
+	draw_rect(box, FILL_COLOR)
+	draw_rect(box, OUTLINE_COLOR, false, OUTLINE_WIDTH)

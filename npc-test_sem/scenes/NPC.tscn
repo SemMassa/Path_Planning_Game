@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scripts/npc.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/fsm.gd" id="2"]
@@ -6,9 +6,11 @@
 [ext_resource type="Script" path="res://scripts/states/wait_state.gd" id="4"]
 [ext_resource type="Script" path="res://scripts/states/block_state.gd" id="5"]
 [ext_resource type="Script" path="res://scripts/states/done_state.gd" id="6"]
+[ext_resource type="Script" path="res://scripts/states/retreat_state.gd" id="7"]
+[ext_resource type="Script" path="res://scripts/states/life_wait_state.gd" id="8"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_1"]
-radius = 12.0
+radius = 15.0
 
 [node name="NPC" type="CharacterBody2D"]
 script = ExtResource("1")
@@ -35,3 +37,9 @@ script = ExtResource("5")
 
 [node name="DoneState" type="Node" parent="FiniteStateMachine"]
 script = ExtResource("6")
+
+[node name="RetreatState" type="Node" parent="FiniteStateMachine"]
+script = ExtResource("7")
+
+[node name="LifeWaitState" type="Node" parent="FiniteStateMachine"]
+script = ExtResource("8")

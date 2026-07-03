@@ -1,14 +1,9 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=2 format=3]
 
 [ext_resource type="Script" path="res://scripts/obstacle.gd" id="1"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_1"]
-size = Vector2(20, 20)
-
-[node name="Obstacle" type="AnimatableBody2D"]
+[node name="Obstacle" type="Node2D"]
 script = ExtResource("1")
-speed = 100.0
-waypoint_reach_distance = 2.0
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-shape = SubResource("RectangleShape2D_1")
+speed = 125.0
+waypoint_reach_distance = 2.5
+box_size = Vector2(25, 25)

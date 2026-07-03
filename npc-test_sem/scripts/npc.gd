@@ -15,24 +15,46 @@ extends CharacterBody2D
 ## own CircleShape2D and each Obstacle's RectangleShape2D (an AABB, since
 ## it never rotates), an AABB-Circle intersection test we wrote ourselves.
 
-const FRAME_DURATION: float = 0.15 # seconds per sprite frame
-const SPRITE_SHEET_PATH: String = "res://sprite_sheets/green_sprites.png"
-const SPRITE_METADATA_PATH: String = "res://sprite_sheets/green_sprites.json"
-const ARRIVAL_DISTANCE: float = 4.0 # px, close enough to a target cell to snap onto it
+## Fired every time DoneState is entered, which happens on spawn placement,
+## on an immediately unreachable goal, and on a genuine Race mode arrival
+## alike. main.gd's benchmark tracking tells those apart itself (it only
+## treats this as "arrived" while it is actively timing this NPC), rather
+## than this signal trying to guess the caller's intent.
+signal arrived
 
-@export var speed: float = 150.0 # pixels per second
-@export var visual_scale: float = 1.5 # sprite size multiplier, does not affect movement
+const FRAME_DURATION: float = 0.15 # seconds per sprite frame
+const ARRIVAL_DISTANCE: float = 5.0 # px, close enough to a target cell to snap onto it
+
+@export var speed: float = 250 # pixels per second
+@export var visual_scale: float = 1.875 # sprite size multiplier, does not affect movement
+
+# Which pre-colored sprite sheet to load, e.g. one color per algorithm, so
+# several NPCs can be told apart without needing sprite.modulate to fake a
+# tint on top of a single shared sheet. Must be set (see main.gd) before
+# this NPC enters the tree, _ready() below reads it right away.
+@export var sprite_sheet_path: String = "res://sprite_sheets/green_sprites.png"
+@export var sprite_metadata_path: String = "res://sprite_sheets/green_sprites.json"
+
+# This NPC's own accent color (see main.gd's ALGORITHM_COLORS), used only
+# for its grid overlay (path + explored cells), not for the sprite itself
+# anymore, that now comes from a real pre-colored sheet instead.
+var accent_color: Color = Color.WHITE
 
 var grid: Grid
 var pathfinder: Pathfinder
 var current_cell: Vector2i = Vector2i.ZERO
 var obstacles: Array[Obstacle] = [] # patrolling obstacles to test against each step
 
+# Life mode only: the three spots (A, B, C) to cycle between forever.
+# Empty means Race mode, reaching the goal just stops at DoneState instead.
+var life_spots: Array[Vector2i] = []
+
 var _path: Array[Vector2i] = []
 var _path_index: int = 0
 var _goal_cell: Vector2i = Vector2i.ZERO
 var _facing: String = "down" # last known movement direction, for idle poses
 var _just_collided: bool = false # set by _check_obstacle_collisions() each step
+var _life_spot_index: int = 0 # which life_spots entry was walked to most recently
 
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var anim_player: AnimationPlayer = $AnimationPlayer
@@ -41,16 +63,31 @@ var _just_collided: bool = false # set by _check_obstacle_collisions() each step
 
 func _ready() -> void:
 	sprite.scale = Vector2.ONE * visual_scale
-	_load_sprite_animations(SPRITE_SHEET_PATH, SPRITE_METADATA_PATH)
+	_load_sprite_animations(sprite_sheet_path, sprite_metadata_path)
 	fsm.initialize(self)
 
 ## Computes a path to goal and starts walking it. Remembers goal so
 ## BlockState can recompute a fresh path from wherever the NPC currently
-## is if the route gets blocked mid walk.
+## is if the route gets blocked mid walk, only relevant for pathfinders
+## whose block_reaction() is REPLAN, RetreatState never calls this.
 func go_to(goal: Vector2i) -> void:
 	_goal_cell = goal
 	_set_path(pathfinder.find_path(grid, current_cell, goal))
+	_update_grid_overlay()
 	fsm.change_state("DoneState" if _path.is_empty() else "WalkState", {"facing": _facing})
+
+## True once life_spots has been assigned (see main.gd), meaning this NPC
+## should keep cycling A -> B -> C -> A ... instead of stopping at DoneState
+## once it reaches a goal.
+func is_in_life_mode() -> bool:
+	return not life_spots.is_empty()
+
+## Advances to the next spot in life_spots (wrapping back to A after C) and
+## starts walking there. Called only by LifeWaitState, once its pause at
+## the current spot elapses.
+func go_to_next_life_spot() -> void:
+	_life_spot_index = (_life_spot_index + 1) % life_spots.size()
+	go_to(life_spots[_life_spot_index])
 
 ## Recomputes a route to the remembered goal from the current position.
 ## Only replaces the path data when a route is actually found, leaving
@@ -63,7 +100,16 @@ func recalculate_path() -> bool:
 	if new_path.is_empty():
 		return false
 	_set_path(new_path)
+	_update_grid_overlay()
 	return true
+
+## Keeps Grid's debug overlay (grid.gd's set_search_result()) showing this
+## NPC's actual current path/explored cells. Called every time a fresh
+## path is computed, not just once, so Life mode's ongoing A -> B -> C ...
+## cycle and mid walk replans both stay reflected too, not just the very
+## first path.
+func _update_grid_overlay() -> void:
+	grid.set_search_result(self, pathfinder.explored_cells, _path, accent_color)
 
 ## Teleports the NPC to cell right away and cancels any path in
 ## progress, used to set a new spawn point by clicking the grid.
@@ -114,6 +160,32 @@ func advance_step() -> void:
 ## overlap (the Obstacle, in practice, maze walls have no shape at all).
 func just_collided() -> bool:
 	return _just_collided
+
+## Moves one physics step backward toward the previous path cell, the
+## mirror image of advance_step(). Used only by RetreatState, for
+## algorithms whose Pathfinder.block_reaction() is RETREAT: the NPC never
+## replans, it just steps back along the path it already computed until
+## the way forward clears, then resumes on that same path. Returns false
+## without moving once path_index is already 0, nowhere left to retreat to.
+func retreat_step() -> bool:
+	if _path_index <= 0:
+		return false
+
+	var previous_cell: Vector2i = _path[_path_index - 1]
+	var target_pos: Vector2 = grid.cell_to_world_center(previous_cell)
+	var to_target: Vector2 = target_pos - position
+
+	if to_target.length() <= ARRIVAL_DISTANCE:
+		position = target_pos
+		current_cell = previous_cell
+		_path_index -= 1
+	else:
+		_update_facing(to_target)
+		var step: Vector2 = to_target.normalized() * speed * get_physics_process_delta_time()
+		position += step
+
+	_check_obstacle_collisions()
+	return true
 
 ## Our own narrow phase test against every obstacle in obstacles, using
 ## CollisionSystem's hand written AABB-Circle check, no engine call
