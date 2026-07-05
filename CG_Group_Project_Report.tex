@@ -1,0 +1,172 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{a4paper, margin=2.5cm, headheight=14pt}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{xcolor}
+\usepackage[colorlinks=true, linkcolor=blue!50!black, urlcolor=blue!50!black, citecolor=blue!50!black]{hyperref}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{listings}
+
+% ---------- Heading style ----------
+\titleformat{\section}{\large\bfseries}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection}{0.6em}{}
+
+% ---------- Header and footer ----------
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancyhead[L]{Computer Games \textendash{} Phase B Report}
+\fancyhead[R]{Topic: Path Planning}
+\fancyfoot[C]{\thepage}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+
+\definecolor{codebg}{rgb}{0.96,0.96,0.96}
+\definecolor{codekeyword}{rgb}{0.0,0.0,0.6}
+\definecolor{codecomment}{rgb}{0.35,0.45,0.35}
+\definecolor{codestring}{rgb}{0.6,0.1,0.1}
+
+\lstdefinelanguage{GDScript}{
+    keywords={func, var, const, class_name, extends, if, elif, else, for, in, while, return, enum, static, signal, await, match, break, continue, true, false, null, self},
+    keywordstyle=\color{codekeyword}\bfseries,
+    sensitive=true,
+    comment=[l]{\#},
+    commentstyle=\color{codecomment}\itshape,
+    string=[b]",
+    stringstyle=\color{codestring},
+    morestring=[b]',
+    basicstyle=\ttfamily\footnotesize,
+    breaklines=true,
+    showstringspaces=false,
+    tabsize=4,
+    backgroundcolor=\color{codebg},
+    frame=single,
+    framesep=4pt,
+    xleftmargin=8pt,
+    xrightmargin=8pt,
+}
+
+\lstset{language=GDScript}
+
+\title{\Huge\textbf{Pathfinding Comparator}\\[0.3em]
+\Large Report\\[0.2em]
+\large Computer Games \textendash{} Phase B, Topic: Path Planning}
+\author{}
+\date{}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{fancy}
+
+\noindent
+\textbf{Group:} \underline{1} \qquad
+\textbf{Members:} Franziska Plagwitz, Luna Schnellbacher, Sem Massa
+
+\vspace{1em}
+
+\section*{Introduction}
+
+The Phase B assignment asks for a game demonstrating at least three lecture techniques plus one recently developed technique, documented in one organized report with references. Our project, the \emph{Pathfinding Comparator}, lets three non player characters race or live inside a procedurally generated house while each one is driven by a different search algorithm, so the algorithms can be compared directly instead of only in theory. This report documents four techniques: path planning and navigation (A*, D* Lite, and directed Jump Point Search as the required recently developed technique), game engine architecture (a finite state machine), collision detection (broad phase and narrow phase tests), and sprite based keyframe animation of the non player characters. For each technique this report gives the underlying idea from the lecture and then the exact file, class and function where it is implemented.
+
+\section{User Guide}
+
+The game is a single Godot 4.6 project (GL Compatibility renderer), \texttt{res://scenes/Main.tscn} as the main scene. Opening the project and pressing play is all that is required.
+
+\begin{itemize}[leftmargin=1.2em]
+    \item \textbf{Start panel} (\texttt{scripts/start\_ui.gd}), shown on launch: choose \emph{Race} mode (one timed run to a shared goal) or \emph{Life} mode (non player characters cycle endlessly between three hotspots), an obstacle count, and which of the three algorithms (A*, D* Lite, JPS) should run. Every ticked algorithm gets its own grid, all sharing the same maze, obstacle routes and start/goal cells for a fair comparison.
+    \item \textbf{Left click} on a walkable cell places the shared spawn point. In Race mode a second left click sets the goal and starts the run. In Life mode the non player characters immediately start cycling through their hotspots.
+    \item \textbf{O key} toggles a per grid overlay (\texttt{scripts/grid.gd}, \texttt{toggle\_overlay()}) showing every explored cell plus the resulting route, the clearest way to see how the algorithms search differently.
+    \item \textbf{Right click} restarts the scene with a freshly generated maze.
+    \item \textbf{Results}: Race mode shows a dashboard (\texttt{scripts/benchmark\_dashboard.gd}) per algorithm with time, explored cells, path length and an efficiency ratio (explored divided by path length, lower is more focused). Life mode shows a live panel (\texttt{scripts/life\_dashboard.gd}) with hotspots reached and hotspots per minute.
+\end{itemize}
+
+\section{Technique 1: Path Planning and Navigation (A*, D* Lite, JPS+)}
+
+\subsection{Background}
+
+The lecture introduces A* as an informed search expanding the node with lowest $f(n) = g(n) + h(n)$ first, $g(n)$ being the cost already paid and $h(n)$ an admissible heuristic estimate of the remaining cost. On an eight directional grid the octile heuristic (orthogonal steps cost one, diagonal steps cost $\sqrt{2}$) is admissible and thus keeps A* optimal. The same lecture covers dynamic path planning for environments that change while an agent moves, and explicitly names D* as a variant of A* extended with dynamic blocking support. D* Lite keeps two cost estimates per cell, $g$ and $rhs$, and repairs only the part of the plan a changed cell actually affects instead of solving the whole search again.
+
+The exercise sheet additionally requires one recently developed technique. For this project that role is filled by Jump Point Search (JPS), specifically the directed, preprocessing based JPS+ variant from a 2023 IEEE publication, named directly in the project plan as the chosen recent technique. Instead of expanding every neighboring cell one step at a time, JPS prunes neighbors using the local grid shape and jumps ahead in a straight line until reaching a cell that forces a direction change, a jump point, sharply reducing the number of cells kept in the open list.
+
+\subsection{Implementation}
+
+All three share the interface in \texttt{algorithms/pathfinder.gd}, class \texttt{Pathfinder}: shared costs \texttt{ORTHOGONAL\_COST = 1.0} and \texttt{DIAGONAL\_COST = 1.41421356}, the octile heuristic, and a \texttt{BlockReaction} enum (\texttt{RETREAT}/\texttt{REPLAN}) that lets a subclass declare how its non player character reacts once blocked.
+
+\textbf{A*}, \texttt{algorithms/astar.gd} (class \texttt{AStarPathfinder}): \texttt{find\_path()} (line 20) runs the textbook algorithm with an open set, \texttt{g\_score} and \texttt{came\_from}, recording every expanded cell into \texttt{explored\_cells} for the overlay. \texttt{block\_reaction()} (line 15) returns \texttt{RETREAT}.
+
+\textbf{D* Lite}, \texttt{algorithms/dstar\_lite.gd} (class \texttt{DStarLitePathfinder}): keeps \texttt{\_g}, \texttt{\_rhs}, a priority queue \texttt{\_pqueue} and an offset key \texttt{\_km} between calls. \texttt{find\_path()} (line 45) calls \texttt{\_initialize()} then \texttt{\_compute\_shortest\_path()} following the standard key comparison and vertex update rules. \texttt{block\_reaction()} (line 38) returns \texttt{REPLAN}: instead of retreating, it recomputes from the current cell.
+
+\textbf{JPS+}, \texttt{algorithms/jps.gd} (class \texttt{JPSPathfinder}): \texttt{find\_path()} (line 37) follows the classic pruning and jumping scheme with one deliberate change: the standard JPS forced neighbor rule assumes diagonal corner cutting is legal, while this project's grid forbids it (\texttt{diagonal\_move\_allowed()} in \texttt{pathfinder.gd}, line 60), so \texttt{\_pruned\_directions}, \texttt{\_jump} and \texttt{\_should\_stop\_at} were adapted by hand for that restriction. A jump cache (\texttt{\_jump\_cache}) avoids repeated jump computations, and \texttt{\_densify()} expands the sparse jump points back into a dense, per cell path so the rest of the game treats every algorithm's output identically. Its doc comment states it was verified against a from scratch Dijkstra reference across roughly 1500 randomized mazes. \texttt{block\_reaction()} (line 34) returns \texttt{RETREAT}, like A*.
+
+\section{Technique 2: Game Engine Architecture (Finite State Machine)}
+
+\subsection{Background}
+
+The AI engine lecture frames intelligent behavior as sensing, deciding and acting, and lists finite state machines as the simplest decision making technique. Following the Mealy machine model shown there, an object occupies exactly one state at a time and transitions to another only in reaction to an event, based on the current state and that event. The lecture also shows an FSM extended with a retreat branch, the same pattern used here once a path is blocked.
+
+\subsection{Implementation}
+
+\texttt{scripts/fsm.gd} (class \texttt{FiniteStateMachine}) owns one active state and exposes \texttt{change\_state(state\_name, msg)} (line 34), which calls \texttt{exit()} on the old and \texttt{enter(msg)} on the new state; \texttt{\_physics\_process()} (line 27) forwards \texttt{update(delta)} to whichever state is active. Every state extends \texttt{NPCState} (\texttt{scripts/npc\_state.gd}). The six states, in \texttt{scripts/states/}:
+
+\begin{itemize}[leftmargin=1.2em]
+    \item \textbf{WalkState}: follows the path; once blocked, reads \texttt{block\_reaction()} and switches to \texttt{RetreatState} or \texttt{BlockState} (\texttt{\_block\_state\_name()}, line 37), the point where path planning and the FSM meet.
+    \item \textbf{RetreatState}: steps back along the known path (A*, JPS).
+    \item \textbf{BlockState}: asks the pathfinder to recompute (D* Lite), falls back to \texttt{WaitState}.
+    \item \textbf{WaitState}: one second timer, then back to \texttt{BlockState}.
+    \item \textbf{DoneState}: entered on arrival in Race mode, emits \texttt{arrived}.
+    \item \textbf{LifeWaitState}: Life mode pause, one and a half seconds, emits \texttt{life\_spot\_reached}.
+\end{itemize}
+
+Godot's signal system is the messaging layer between states and \texttt{scripts/main.gd}, matching the project plan's decoupled messaging idea.
+
+\section{Technique 3: Collision Detection (Broad Phase and Narrow Phase)}
+
+\subsection{Background}
+
+The collisions lecture splits detection into a broad phase, cheaply ruling out pairs that clearly cannot touch using bounding volumes such as AABBs, and a narrow phase, an exact test applied only to the remaining candidates, for example a circle against box test via a closest point construction: clamp the circle's center into the box, compare the distance to that point against the radius.
+
+\subsection{Implementation}
+
+Both phases are implemented by hand in \texttt{scripts/collision\_system.gd} (class \texttt{CollisionSystem}); Godot's physics engine is intentionally not used, since the assignment asks for the phases themselves. \textbf{Broad phase}: \texttt{aabb\_overlap()} (line 10), AABB against AABB. \textbf{Narrow phase}: \texttt{circle\_intersects\_box()} and \texttt{circle\_vs\_box\_collides()} (lines 17, 26), the closest point construction described above, matching the project plan's circle proxies for non player characters and AABBs for obstacles. \texttt{push\_circle\_out\_of\_box()} (line 36) resolves an actual collision with a minimum translation vector.
+
+The non player character (\texttt{scripts/npc.gd}) is a \texttt{CharacterBody2D} for its \texttt{CollisionShape2D}, but never calls \texttt{move\_and\_slide()}: \texttt{\_check\_obstacle\_collisions()} (line 195) calls into \texttt{CollisionSystem} directly. Moving obstacles (\texttt{scripts/obstacle.gd}) use a 25 by 25 unit AABB and patrol a fixed route, updating occupied cells so D* Lite can detect a newly blocked cell.
+
+\section{Technique 4: Animation (Keyframing)}
+
+\subsection{Background}
+
+The lecture on animation names keyframing as the basic animation technique: characterizing individual key poses and interpolating between them.
+
+\subsection{Implementation}
+
+The simulator uses a discrete, sprite based version of this idea rather than continuous interpolation. \texttt{scripts/npc.gd} loads a sprite sheet per direction and builds one animation per state from a start and end frame (\texttt{\_load\_sprite\_animations()}, line 219, \texttt{\_build\_single\_animation()}, line 264), and each state's \texttt{enter()} switches to its own walk or idle cycle through the shared \texttt{animate()} helper in \texttt{npc\_state.gd}. This is the "Key Frame Animation" item from the project plan, driven directly by the same finite state machine described in Technique 2.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{Bildschirmfoto 2026-06-20 um 18.35.06.png}
+    \caption{Key frames of the walk cycle sprite sheet, one direction per row (front, back, side), four frames each. \texttt{\_build\_single\_animation()} turns each row into one looping animation, and the active FSM state picks the row through \texttt{animate()}.}
+    \label{fig:placeholder}
+\end{figure}
+
+\section{Findings and Insights}
+
+\textbf{Search footprint.} The efficiency ratio (explored divided by path length) is consistently smallest for JPS, since it only expands jump points instead of every cell along the long straight corridors the maze generator tends to produce. A* and D* Lite both expand every intermediate cell, and on short, twisty routes through cluttered rooms the gap narrows since jump points sit closer together there.
+
+\textbf{Path length and quality.} All three return equal length paths for a given start and goal, since none relaxes the eight directional, corner cutting free grid model; A* and JPS share the same admissible octile heuristic, and D* Lite converges to the same optimal cost. The overlay confirms this: routes coincide almost exactly, while explored cell sets differ sharply.
+
+\textbf{Behavior once blocked.} This is the clearest practical difference in how the algorithms react. A* and JPS both retreat and wait for a moving obstacle to pass. D* Lite recomputes only the affected part of its plan and visibly reroutes around a still blocking obstacle far sooner, without the pause in \texttt{WaitState} that A* and JPS go through. One would expect this to translate into a clearly higher hotspots per minute rate for D* Lite in Life mode. In practice it does not: across repeated Life mode runs D* Lite reaches roughly the same number of hotspots per minute as A*, since the immediate rerouting mostly saves the short wait time, which turns out to be a small fraction of total travel time on this maze size, while the D* Lite bookkeeping itself adds a bit of overhead per step. The qualitative difference in behavior is real and visible on screen, but it does not show up as a clear quantitative advantage in the benchmark under these conditions.
+
+\textbf{Takeaway.} JPS suits a mostly static environment where a small search footprint matters. D* Lite reacts to a changing environment in a qualitatively different, more proactive way than A* or JPS, but on this maze size and obstacle density that difference did not translate into a measurable hotspots per minute advantage, so its practical benefit here is more about smoother, less interrupted motion than raw throughput. A* remains the simple baseline the other two are compared against.
+
+\end{document}
